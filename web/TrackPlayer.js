@@ -67,7 +67,7 @@ export default class RNTrackPlayer {
     }
 
     remove = id => {
-        let newList = []
+        let newList = [];
         for (let i = 0; i < this.playlist.length; i++) {
             if (this.playlist[i].id != id)
                 newList.push(this.playlist[i]);
@@ -117,10 +117,12 @@ export default class RNTrackPlayer {
     reset = () => {
         return new Promise((resolve, reject) => {
             if (this.audio != null)
-                this.audio.stop();
+                this.audio = null;
 
             this.track = null;
+            this.currentId = null;
             this.playlist = [];
+            this.index = 0;
             this.emitter.emit(this.PLAYBACK_STATE, {state: this.STATE_NONE});
             resolve();
         });
@@ -129,8 +131,13 @@ export default class RNTrackPlayer {
 
     destroy = () => {
         return new Promise((resolve, reject) => {
+            if (this.audio != null)
+                this.audio = null;
+
             this.track = null;
+            this.currentId = null;
             this.playlist = [];
+            this.index = 0;
             this.emitter.emit(this.PLAYBACK_STATE, {state: this.STATE_NONE});
             resolve();
         });
@@ -208,9 +215,6 @@ export default class RNTrackPlayer {
                     if (wasPlaying)
                         this.play();
                 }
-                
-
-                
             }
         }
     }
@@ -266,7 +270,6 @@ export default class RNTrackPlayer {
                 resolve(this.track.id);
             else
                 resolve(null);
-            
         });
     }
 
