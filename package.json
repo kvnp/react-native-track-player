@@ -1,5 +1,5 @@
 {
-  "name": "react-native-track-player",
+  "name": "react-native-track-player-web",
   "version": "1.2.5",
   "description": "A fully fledged audio module created for music apps",
   "contributors": [
@@ -21,6 +21,7 @@
   "keywords": [
     "react",
     "react-native",
+    "react-native-web",
     "track-player",
     "audio-player",
     "audio",
