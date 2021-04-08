@@ -149,6 +149,13 @@ export default class RNTrackPlayer {
                                 this.mediaSession.setPaused();
                                 if (this.playlist.length - 1 == this.index) {
                                     this.emitter.emit(this.PLAYBACK_STATE, { state: this.STATE_PAUSED});
+                                    this.emitter.emit(
+                                        this.PLAYBACK_QUEUE_ENDED,
+                                        {
+                                            track: this.currentId,
+                                            position: this.audio.currentTime
+                                        }
+                                    );
                                 } else {
                                     this.emitter.emit(this.PLAYBACK_STATE, { state: this.STATE_BUFFERING});
                                     this.skipToNext(true);
@@ -188,23 +195,13 @@ export default class RNTrackPlayer {
 
     skipToNext = async(wasPlaying) => {
         if (this.playlist != null) {
-            if (this.playlist.length - 1 == this.index) {
-                this.emitter.emit(
-                    this.PLAYBACK_QUEUE_ENDED,
-                    {
-                        track: this.currentId,
-                        position: this.track.currentTime
-                    }
-                );
+            if (this.playlist[this.index + 1].url == null) {
+                //this._emitNextTrack(null);
+                this.emitter.emit(this.PLAYBACK_ERROR, { reason: "url is missing" });
             } else {
-                if (this.playlist[this.index + 1].url == null) {
-                    //this._emitNextTrack(null);
-                    this.emitter.emit(this.PLAYBACK_ERROR, { reason: "url is missing" });
-                } else {
-                    this.skip(this.playlist[this.index + 1].id);
-                    if (wasPlaying)
-                        this.play();
-                }
+                this.skip(this.playlist[this.index + 1].id);
+                if (wasPlaying)
+                    this.play();
             }
         }
     }
