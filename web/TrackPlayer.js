@@ -107,7 +107,7 @@ export default class RNTrackPlayer {
     stop = () => {
         return new Promise((resolve, reject) => {
             if (this.audio != null) {
-                this.audio.stop();
+                this.audio.pause();
                 this.emitter.emit(this.PLAYBACK_STATE, {state: this.STATE_STOPPED});
             }
             resolve();
@@ -117,7 +117,7 @@ export default class RNTrackPlayer {
     reset = () => {
         return new Promise((resolve, reject) => {
             if (this.audio != null)
-                this.audio = null;
+                this.audio.pause();
 
             this.track = null;
             this.currentId = null;
@@ -130,17 +130,7 @@ export default class RNTrackPlayer {
     }
 
     destroy = () => {
-        return new Promise((resolve, reject) => {
-            if (this.audio != null)
-                this.audio = null;
-
-            this.track = null;
-            this.currentId = null;
-            this.playlist = [];
-            this.index = 0;
-            this.emitter.emit(this.PLAYBACK_STATE, {state: this.STATE_NONE});
-            resolve();
-        });
+        return this.reset();
     }
 
     skip = id => {
@@ -286,7 +276,7 @@ export default class RNTrackPlayer {
 
     getDuration = () => {
         return new Promise((resolve, reject) => {
-            if (this.audio != null)
+            if (this.audio != null && this.track != null)
                 resolve(this.track.duration);
             else
                 resolve(0);
