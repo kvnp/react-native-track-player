@@ -14,13 +14,18 @@ export default class RNTrackPlayer {
     PLAYBACK_ERROR = "playback-error";
     PLAYBACK_METADATA_RECEIVED = "playback-metadata-received";
 
+    REMOTE_PLAY = "remote-play"
+    REMOTE_PAUSE = "remote-pause"
+    REMOTE_NEXT = "remote-next"
+    REMOTE_PREVIOUS = "remote-previous"
+
     constructor() {
         this.emitter = DeviceEventEmitter;
         this.mediaSession = new MediaSession(
-            this.play,
-            this.pause,
-            this.skipToNext,
-            this.skipToPrevious
+            () => this.emitter.emit(this.REMOTE_PLAY),
+            () => this.emitter.emit(this.REMOTE_PAUSE),
+            () => this.emitter.emit(this.REMOTE_NEXT),
+            () => this.emitter.emit(this.REMOTE_PREVIOUS)
         );
 
         this.audio = null;
