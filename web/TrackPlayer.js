@@ -28,16 +28,67 @@ export default class RNTrackPlayer {
             () => this.emitter.emit(this.REMOTE_PREVIOUS)
         );
 
-        this.audio = null;
         this.currentId = null;
 
         this.playlist = [];
         this.track = null;
         this.index = null;
+
+        this.playEnded = false;
+
+        this.audio = document.createElement("audio");
+        
+        this.audio.onended = e => {
+            this.mediaSession.setPaused();
+            if (this.playlist.length - 1 == this.index) {
+                this.playEnded = true;
+                this.audio.src = this.track.url;
+                this.emitter.emit(this.PLAYBACK_STATE, { state: this.STATE_PAUSED});
+                this.emitter.emit(
+                    this.PLAYBACK_QUEUE_ENDED,
+                    {
+                        track: this.currentId,
+                        position: this.audio.currentTime
+                    }
+                );
+            } else {
+                this.skipToNext(true);
+            }
+        };
+
+        this.audio.oncanplay = e => {
+            this.audio.play();
+
+            if (this.playEnded) {
+                this.playEnded = false;
+                this.audio.pause();
+            }
+        };
+
+        this.audio.onpause = e => {
+            if (this.track != null) {
+                this.emitter.emit(this.PLAYBACK_STATE, {state: this.STATE_PAUSED});
+                this.mediaSession.setPaused();
+            }
+        };
+
+        this.audio.onplay = e => {
+            if (this.track != null) {
+                this.emitter.emit(this.PLAYBACK_STATE, {state: this.STATE_PLAYING});
+                this.mediaSession.setPlaying();
+            }
+        };
+
+        this.audioBackup = document.createElement("audio");
+        this.audioBackup.volume = 0;
+        this.audioBackup.onpause = e => {};
+        this.audioBackup.onplay = e => this.audioBackup.pause();
+        this.audioBackup.oncanplay = e => this.audioBackup.pause();
+        this.audioBackup.src = "/+MYxAAAAANIAAAAAExBTUUzLjk4LjIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
     }
 
     _emitNextTrack = id => {
-        let position = this.audio != null
+        let position = this.audio.src != ''
             ? this.audio.currentTime
             : -0.01
 
@@ -51,23 +102,14 @@ export default class RNTrackPlayer {
 
 
     play = () => {
-        if (this.audio != null) {
+        if (this.audio.src != '') {
             this.audio.play();
-            if (!this.audio.paused) {
-                this.emitter.emit(this.PLAYBACK_STATE, {state: this.STATE_PLAYING});
-                this.mediaSession.setPlaying();
-            } else {
-                this.emitter.emit(this.PLAYBACK_STATE, {state: this.STATE_PAUSED});
-                this.mediaSession.setPaused();
-            }
         }
     }
 
     pause = () => {
-        if (this.audio != null) {
+        if (this.audio.src != '') {
             this.audio.pause();
-            this.mediaSession.setPaused();
-            this.emitter.emit(this.PLAYBACK_STATE, {state: this.STATE_PAUSED});
         }
     }
 
@@ -111,7 +153,7 @@ export default class RNTrackPlayer {
 
     stop = () => {
         return new Promise((resolve, reject) => {
-            if (this.audio != null) {
+            if (this.audio.src != '') {
                 this.audio.pause();
                 this.emitter.emit(this.PLAYBACK_STATE, {state: this.STATE_STOPPED});
             }
@@ -121,7 +163,7 @@ export default class RNTrackPlayer {
 
     reset = () => {
         return new Promise((resolve, reject) => {
-            if (this.audio != null)
+            if (this.audio.src != '')
                 this.audio.pause();
 
             this.track = null;
@@ -147,44 +189,10 @@ export default class RNTrackPlayer {
                     if (this.playlist[i].url != null) {
                         this.index = i;
                         this.track = this.playlist[i];
-
-                        if (this.audio == null) {
-                            this.audio = new Audio(this.track.url);
-                            this.audio.addEventListener("ended", e => {
-                                this.mediaSession.setPaused();
-                                if (this.playlist.length - 1 == this.index) {
-                                    this.emitter.emit(this.PLAYBACK_STATE, { state: this.STATE_PAUSED});
-                                    this.emitter.emit(
-                                        this.PLAYBACK_QUEUE_ENDED,
-                                        {
-                                            track: this.currentId,
-                                            position: this.audio.currentTime
-                                        }
-                                    );
-                                } else {
-                                    this.emitter.emit(this.PLAYBACK_STATE, { state: this.STATE_BUFFERING});
-                                    this.skipToNext(true);
-                                }
-                            });
-                        } else
-                            this.audio.src = this.track.url;
+                        this.audio.src = this.track.url;
                         
                         this._emitNextTrack(id);
-                        
-                        try {
-                            this.mediaSession.setMetadata(this.track.title, this.track.artist, this.track.artwork);
-                            this.audio.play();
-                            if (!this.audio.paused) {
-                                this.emitter.emit(this.PLAYBACK_STATE, { state: this.STATE_PLAYING });
-                                this.mediaSession.setPlaying();
-                            } else {
-                                this.emitter.emit(this.PLAYBACK_STATE, { state: this.STATE_PAUSED });
-                                this.mediaSession.setPaused();
-                            }
-                            
-                        } catch (e) {
-                            console.log(e);
-                        }
+                        this.mediaSession.setMetadata(this.track.title, this.track.artist, this.track.artwork);
 
                     } else {
                         this._emitNextTrack(id);
@@ -201,27 +209,23 @@ export default class RNTrackPlayer {
     skipToNext = async(wasPlaying) => {
         if (this.playlist != null) {
             if (this.playlist[this.index + 1].url == null) {
-                //this._emitNextTrack(null);
                 this.emitter.emit(this.PLAYBACK_ERROR, { reason: "url is missing" });
             } else {
                 this.skip(this.playlist[this.index + 1].id);
-                if (wasPlaying)
-                    this.play();
+                if (!wasPlaying)
+                    this.pause();
             }
         }
     }
 
     skipToPrevious = () => {
-        if (this.playlist != null) {
-            if (this.index != 0) {
-                this.skip(this.playlist[this.index - 1].id);
-            }
-        }
+        if (this.playlist != null && this.index != 0)
+            this.skip(this.playlist[this.index - 1].id);
     }
 
     removeUpcomingTracks = () => {
         return new Promise((resolve, reject) => {
-            if (this.audio != null) {
+            if (this.audio.src != '') {
                 if (this.audio.fastSeek != undefined)
                     this.audio.fastSeek(seconds);
                 else
@@ -231,13 +235,17 @@ export default class RNTrackPlayer {
         });
     }
 
-    setVolume = () => {}
+    setVolume = volume => {
+        this.audio.volume = volume;
+    }
 
-    setRate = () => {}
+    setRate = rate => {
+        this.audio.playbackRate = rate;
+    }
 
     seekTo = seconds => {
         return new Promise((resolve, reject) => {
-            if (this.audio != null) {
+            if (this.audio.src != '') {
                 if (this.audio.fastSeek != undefined)
                     this.audio.fastSeek(seconds);
                 else
@@ -267,18 +275,20 @@ export default class RNTrackPlayer {
 
     getPosition = () => {
         return new Promise((resolve, reject) => {
-            if (this.audio != null)
+            if (this.audio.src != '')
                 resolve(this.audio.currentTime);
             else
                 resolve(0); 
         });
     }
 
-    getVolume = () => {}
+    getVolume = () => {
+        return this.audio.volume;
+    }
 
     getDuration = () => {
         return new Promise((resolve, reject) => {
-            if (this.audio != null && this.track != null)
+            if (this.audio.src != '' && this.track != null)
                 resolve(this.track.duration);
             else
                 resolve(0);
@@ -288,14 +298,14 @@ export default class RNTrackPlayer {
 
     getBufferedPosition = () => {
         return new Promise((resolve, reject) => {
-            if (this.audio != null)
+            if (this.audio.src != '')
                 resolve(this.audio.buffered);
         });
     }
 
     getState = () => {
         return new Promise((resolve, reject) => {
-            if (this.audio == null)
+            if (this.audio.src == '')
                 resolve(this.STATE_NONE);
             else {
                 if (this.audio.paused)
@@ -308,7 +318,7 @@ export default class RNTrackPlayer {
 
     getRate = () => {
         return new Promise((resolve, reject) => {
-            if (this.audio != null)
+            if (this.audio.src != '')
                 resolve(this.audio.defaultPlaybackRate);
             else
                 resolve(null);
@@ -321,7 +331,9 @@ export default class RNTrackPlayer {
         });
     }
 
-    updateOptions = () => {}
+    updateOptions = () => {
+
+    }
 }
 
 module.exports = {TrackPlayerModule: new RNTrackPlayer()};
