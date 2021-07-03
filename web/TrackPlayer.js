@@ -66,6 +66,7 @@ export default class RNTrackPlayer {
         };
 
         this.audio.onpause = e => {
+            this.audioBackup.play();
             if (this.track != null) {
                 this.emitter.emit(this.PLAYBACK_STATE, {state: this.STATE_PAUSED});
                 this.mediaSession.setPaused();
@@ -73,6 +74,7 @@ export default class RNTrackPlayer {
         };
 
         this.audio.onplay = e => {
+            this.audioBackup.pause();
             if (this.track != null) {
                 this.emitter.emit(this.PLAYBACK_STATE, {state: this.STATE_PLAYING});
                 this.mediaSession.setPlaying();
@@ -81,10 +83,11 @@ export default class RNTrackPlayer {
 
         this.audioBackup = document.createElement("audio");
         this.audioBackup.volume = 0;
+        this.audioBackup.loop = true;
         this.audioBackup.onpause = e => {};
-        this.audioBackup.onplay = e => this.audioBackup.pause();
-        this.audioBackup.oncanplay = e => this.audioBackup.pause();
-        this.audioBackup.src = "/+MYxAAAAANIAAAAAExBTUUzLjk4LjIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+        this.audioBackup.onplay = e => {};
+        this.audioBackup.oncanplay = e => this.audioBackup.play();
+        this.audioBackup.src = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=";
     }
 
     _emitNextTrack = id => {
@@ -189,6 +192,7 @@ export default class RNTrackPlayer {
                     if (this.playlist[i].url != null) {
                         this.index = i;
                         this.track = this.playlist[i];
+                        this.audioBackup.play();
                         this.audio.src = this.track.url;
                         
                         this._emitNextTrack(id);
