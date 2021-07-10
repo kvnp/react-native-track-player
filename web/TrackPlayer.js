@@ -324,9 +324,13 @@ export default class RNTrackPlayer {
         });
     }
 
-    updateOptions = () => {
+    updateOptions = () => {}
 
-    }
+    setupPlayer = () => {
+        return new Promise((resolve, reject) => {
+            resolve();
+        });
+    };
 }
 
 module.exports = {TrackPlayerModule: new RNTrackPlayer()};
