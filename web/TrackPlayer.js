@@ -254,6 +254,8 @@ export default class RNTrackPlayer {
                 if (this.playlist[i].id == id)
                     resolve(this.playlist[i]);
             }
+
+            resolve(null);
         });
     }
 
