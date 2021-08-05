@@ -1,1 +1,1 @@
-react-native-track-player v1 with windows and web
+react-native-track-player v1 with support for windows and web
