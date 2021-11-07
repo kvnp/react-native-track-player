@@ -57,11 +57,11 @@ export default class RNTrackPlayer {
         };
 
         this.audio.oncanplay = e => {
-            this.audio.play();
-
             if (this.playEnded) {
                 this.playEnded = false;
-                this.audio.pause();
+                this.pause();
+            } else {
+                this.play();
             }
         };
 
@@ -96,7 +96,13 @@ export default class RNTrackPlayer {
 
     play = () => {
         if (this.audio.src != '') {
-            this.audio.play();
+            this.audio.play()
+                .then(() => {
+                    this.emitter.emit(this.PLAYBACK_STATE, {state: this.STATE_PLAYING});
+                })
+                .catch(e => {
+                    this.emitter.emit(this.PLAYBACK_STATE, {state: this.STATE_PAUSED});
+                });
         }
     }
 
